@@ -1,37 +1,32 @@
 package players.betclic.com.infrastructure
 
+import org.litote.kmongo.*
 import players.betclic.com.core.Player
 import players.betclic.com.core.PlayerRepository
 
 class MongoPlayerRepository : PlayerRepository {
-    private val _players = arrayListOf(
-        Player("toto", 11),
-        Player("titi", 10)
-    )
+
+    private val client = KMongo.createClient()
+    private val database = client.getDatabase("player")
+    private val playerCollection = database.getCollection("player", Player::class.java)
 
     override fun add(player: Player) {
-        _players.add(player)
+        playerCollection.insertOne(player)
     }
 
     override fun setPointsNumber(pseudo: String, pointsNumber: Int) {
-        val player = findByPseudo(pseudo)
-
-        player?.let {
-            val updatedPlayer = it.copy(pointsNumber = pointsNumber)
-            _players.remove(it)
-            _players.add(updatedPlayer)
-        }
+        playerCollection.updateOne(Player::pseudo eq pseudo, set(Player::pointsNumber setTo pointsNumber))
     }
 
     override fun findByPseudo(pseudo: String): Player? {
-        return _players.firstOrNull { it.pseudo == pseudo }
+        return playerCollection.findOne(Player::pseudo eq pseudo)
     }
 
     override fun findAll(): List<Player> {
-        return _players
+        return playerCollection.find().toList()
     }
 
     override fun removeAll() {
-        _players.clear()
+        playerCollection.deleteMany(Player::pseudo exists true)
     }
 }
